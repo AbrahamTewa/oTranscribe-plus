@@ -1,14 +1,50 @@
-const $ = require('jquery');
+import $ from 'jquery';
 
-export default function(callbackFn) {
+
+type GoogleDriveInfo = {
+    CLIENT_ID: string,
+    SCOPES: string,
+}
+
+const gd = (() => {
+    function button() {
+        var signIn = document.webL10n.get('sign-in');
+        var text = '<a class="export-block-gd unauth" id="x-gd" target="_blank" href="javascript:void(0);">Google Drive<div class="sign-in" id="x-gd-sign">'
+        + signIn +
+        '</div></a>'
+        return text;
+    }
     
-    let currentText = '';
-    let currentFilename = '';
-    
-    var gd = {
+    function updateButton(status: string, active: boolean, link?: string){
+        var exportBlockGd = $('.export-block-gd') as JQuery<HTMLAnchorElement>;
+        exportBlockGd[0].innerHTML = status;
+        if (active == true){
+            exportBlockGd.addClass('gd-authenticated').removeClass("unauth");  
+        } else if (active == false){
+            exportBlockGd.removeClass('gd-authenticated');
+        }
+        if (link) {
+            exportBlockGd[0].removeEventListener('click', insertGoogleDriveFile);
+            exportBlockGd[0].href = link;
+        } else {
+            exportBlockGd[0].addEventListener('click', insertGoogleDriveFile);
+        }
+        
+    }
+
+    return {
+        button,
+        updateButton,
+
         CLIENT_ID : '219206830455.apps.googleusercontent.com',
         SCOPES : 'https://www.googleapis.com/auth/drive'
     }
+})();
+
+export default function(callbackFn: () => void) {
+    
+    let currentText = '';
+    let currentFilename = '';
 
     // Called during startup to prevent blocking
     var script = document.createElement("script");
@@ -26,7 +62,7 @@ export default function(callbackFn) {
     /**
      * Check if the current user has authorized the application.
      */
-    function checkAuth({text, filename}) {
+    function checkAuth({text, filename}: { text: string, filename: string }) {
         currentText = text;
         currentFilename = filename;
         try {
@@ -47,53 +83,20 @@ export default function(callbackFn) {
      *
      * @param {Object} authResult Authorization result.
      */
-    function handleAuthResult(authResult) {
+    function handleAuthResult(authResult: {error?: string}) {
       if (authResult && !authResult.error) {
         // Access token has been successfully retrieved, requests can be sent to the API.
         gd.updateButton("Google Drive",true);
       } else {
         // No access token could be retrieved, show the button to start the authorization flow.
-        document.getElementById('x-gd-sign').onclick = function() {
-            gapi.auth.authorize(
-                {'client_id': gd.CLIENT_ID, 'scope': gd.SCOPES, 'immediate': false},
-                gd.handleAuthResult);
+        const signinDiv = document.getElementById('x-gd-sign') as HTMLDivElement;
+
+        signinDiv.onclick = function() {
+            gapi.auth.authorize({'client_id': gd.CLIENT_ID, 'scope': gd.SCOPES, 'immediate': false});
         };
       }
-      
     }
 
-    gd.updateButton = function(status, active, link){
-        var exportBlockGd = $('.export-block-gd');
-        exportBlockGd[0].innerHTML = status;
-        if (active == true){
-            exportBlockGd.addClass('gd-authenticated').removeClass("unauth");  
-        } else if (active == false){
-            exportBlockGd.removeClass('gd-authenticated');
-        }
-        if (link) {
-            exportBlockGd[0].removeEventListener('click', insertGoogleDriveFile);
-            exportBlockGd[0].href = link;
-        } else {
-            exportBlockGd[0].addEventListener('click', insertGoogleDriveFile);
-        }
-        
-    }
-
-    gd.button = function(){
-        var signIn = document.webL10n.get('sign-in');
-        var text = '<a class="export-block-gd unauth" id="x-gd" target="_blank" href="javascript:void(0);">Google Drive<div class="sign-in" id="x-gd-sign">'
-        + signIn +
-        '</div></a>'
-        return text;
-    }
-
-    function uploadFile(evt) {
-      gapi.client.load('drive', 'v2', function() {
-        var file = evt.target.files[0];
-        insertFile(file);
-      });
-    }
-    
     const createBlob = function(){
         var p = currentText;
         var aFileParts = [p];
@@ -114,7 +117,7 @@ export default function(callbackFn) {
      * @param {File} fileData File object to read data from.
      * @param {Function} callback Function to call when the request is complete.
      */
-    window.insertGoogleDriveFile = function(callback) {
+    window.insertGoogleDriveFile = function() {
         var sendingText = document.webL10n.get('send-drive');
         gd.updateButton(sendingText,false);
 
@@ -130,7 +133,7 @@ export default function(callbackFn) {
             'mimeType': 'text/html'
         };
 
-        var base64Data = btoa(reader.result);
+        var base64Data = btoa(reader.result as string);
         var multipartRequestBody =
             delimiter +
             'Content-Type: application/json\r\n\r\n' +
@@ -150,7 +153,7 @@ export default function(callbackFn) {
               'Content-Type': 'multipart/mixed; boundary="' + boundary + '"'
             },
             'body': multipartRequestBody});
-        request.execute(function(file) {
+        request.execute(function(file: { alternateLink: string }) {
               var openText = document.webL10n.get('open-drive');
               gd.updateButton(openText + ' &rarr;', true, file.alternateLink);
         });

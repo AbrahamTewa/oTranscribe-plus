@@ -6,7 +6,7 @@ export default function() {
     $('#local-file-import').change(reactToInput);
 }
 
-function loadFile( fileRaw ){
+function loadFile( fileRaw: string ){
     try {
         const file = JSON.parse(fileRaw); 
         setEditorContents(file.text);
@@ -18,7 +18,7 @@ function loadFile( fileRaw ){
 }
 
 
-function remindOfMediaFile( filename, filesource, filetime ){
+function remindOfMediaFile( filename: string, filesource: string, filetime: string ){
     if (filename && filename !== '') {
         var lastfileText = document.webL10n.get('last-file');
         var lastfileText = 'File last used with imported document:';
@@ -35,14 +35,14 @@ function remindOfMediaFile( filename, filesource, filetime ){
     }
 }
 
-function reactToInput(){
+function reactToInput(this: HTMLInputElement, e: Event){
     let input = this;
-    var file = input.files[0];
+    var file = input.files?.[0] as File;
     
     var reader = new FileReader();
     reader.readAsText(file);
     reader.onload = function(e) { 
-        var contents = e.target.result;
+        var contents = e.target?.result as string;
         loadFile( contents );
     }
     

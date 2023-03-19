@@ -1,40 +1,80 @@
-export default class HTML5_VIDEO {
-    constructor(source) {
+export default class HTML5_VIDEO implements MediaDriver {
+    destroyed = false;
+
+    element?: HTMLVideoElement;
+
+    status: MediaStatus = MediaStatus.inactive;
+
+    constructor(source: string) {
         this.element = document.createElement( 'video' );
         this.element.src = source;
         this.element.className = 'video-player';
     	document.body.appendChild(this.element);
     }
-    play() {
+    play(): void {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         this.element.play();
-        this.status = 'playing';
+        this.status = MediaStatus.playing;
     }
-    pause() {
+    pause(): void {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         this.element.pause();
-        this.status = 'paused';
+        this.status = MediaStatus.paused;
     }
-    getTime() {
+    getTime(): number {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         return this.element.currentTime;
     }
-    setTime(time) {
+    setTime(time: number): void {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         this.element.currentTime = time;
     }
-    getStatus() {
+    getStatus(): MediaStatus {
         return this.status;
     }
-    getLength() {
+    getLength(): number {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         return this.element.duration;
     }
-    isReady() {
+    isReady(): boolean {
+        if (!this.element) {
+            return false;
+        }
         return (!this.destroyed && (!isNaN(this.element.duration)) && (this.element.readyState === 4));
     }
-    getSpeed() {
+    getSpeed(): number {
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         return this.element.playbackRate;
     }
-    setSpeed(speed){
+    setSpeed(speed: number){
+        if (!this.element) {
+            throw new Error('Driver destroyed');
+        }
+
         return this.element.playbackRate = speed;
     }
-    destroy(speed){
+    destroy(){
+        if (!this.element) {
+            return;
+        }
         this.element.remove();
     	delete this.element;
     	this.destroyed = true;

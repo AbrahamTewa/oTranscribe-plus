@@ -1,6 +1,6 @@
 const $ = require('jquery');
 
-export default function( msg ) {
+export default function( msg: string ) {
     $('.message-panel .message-content').html( msg );
     var $panel = $('.message-panel');
     var $textbox = $('#textbox');

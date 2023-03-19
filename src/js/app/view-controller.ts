@@ -1,5 +1,5 @@
 import {showSettings} from './settings/settings.jsx';
-const $ = (sel) => document.querySelector(sel);
+const $ = (sel: string) => document.querySelector(sel) as HTMLElement;
 
 let currentView = 'about';
 
@@ -15,7 +15,7 @@ const views = {
         $('.settings-button').classList.add('active');
         $('.settings-panel').classList.add('active');
         $('.settings-panel').innerHTML = '';
-        showSettings($('.settings-panel'));
+        showSettings($('.settings-panel') as HTMLDivElement);
     }
 }
 
@@ -27,7 +27,7 @@ const hideAllViews = () => {
     $('.textbox-container').style.display = 'none';
 }
 
-const validate = (name) => {
+const validate = (name: string) => {
     if ((name in views) === false) {
         throw(name + ' is not a valid view');   
     }
@@ -35,7 +35,7 @@ const validate = (name) => {
 
 export default {
     get: () => currentView,
-    set: (name) => {
+    set: (name: keyof typeof views) => {
         validate(name);
         
         hideAllViews();
@@ -44,7 +44,7 @@ export default {
         currentView = name;
         return currentView;
     },
-    is: (name) => {
+    is: (name: string) => {
         validate(name);
         return (name === currentView);
     }

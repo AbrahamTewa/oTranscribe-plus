@@ -2,8 +2,8 @@
              Initialisation
 ******************************************/
 
-const $ = require('jquery');
-let otrQueryParams = {};
+import $ from 'jquery';
+let otrQueryParams: Record<string, string> = {};
 
 import { watchFormatting, watchWordCount, initAutoscroll } from './texteditor';
 import { inputSetup, getQueryParams, hide as inputHide, localStorage } from './input';
@@ -58,9 +58,9 @@ export default function init(){
             if ( timestamp ){
                 // Is the timestamp in HH:MM::SS format?
                 if ( ~timestamp.indexOf(":") ){
-                    timestamp = convertTimestampToSeconds(timestamp);
+                    timestamp = convertTimestampToSeconds(timestamp).toString();
                 } 
-                player.driver._ytEl.seekTo(timestamp);
+                player.driver._ytEl?.seekTo(Number(timestamp));
             }
         });
 
@@ -92,7 +92,7 @@ export default function init(){
 // note: this function may run multiple times
 function onLocalized() {
     const resetInput = inputSetup({
-        create: file => {
+        create: (file: File) => {
             const driver = isVideoFormat(file) ? playerDrivers.HTML5_VIDEO : playerDrivers.HTML5_AUDIO;
 		    createPlayer({
 		        driver: driver,
@@ -102,7 +102,7 @@ function onLocalized() {
                 bindPlayerToUI(file.name);
 		    });
         },
-        createFromURL: url => {
+        createFromURL: (url: string) => {
 		    createPlayer({
 		        driver: playerDrivers.YOUTUBE,
 		        source: url
@@ -138,8 +138,9 @@ function onLocalized() {
 window.addEventListener('localized', onLocalized, false);
 
 $(window).resize(function() {
-    if (document.getElementById('media') ) {
-        document.getElementById('media').style.width = oT.media.videoWidth();
+    const media = document.getElementById('media') as HTMLDivElement;
+    if (media) {
+        media.style.width = oT.media.videoWidth();
     }
 });
 

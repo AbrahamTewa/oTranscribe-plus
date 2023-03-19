@@ -1,4 +1,4 @@
-const $ = require('jquery');
+import $ from 'jquery';
 import { getPlayer } from './player/player';
 import { insertTimestamp, convertTimestampToSeconds, formatMilliseconds } from './timestamps';
 
@@ -16,7 +16,8 @@ const show = () => {
 
     if (timeSelectionModalActive === true) {
         $timeSelection.addClass('active');
-        $timeSelection.find('input')
+        const input = $timeSelection.find('input') as JQuery<HTMLInputElement>;
+        input
             .off()
             .val(formatMilliseconds(player.getTime()))
             .keyup(onTimeSelectionModalSubmit)
@@ -26,9 +27,9 @@ const show = () => {
         $('.controls .time-selection').removeClass('active');
     }
 
-    function onTimeSelectionModalSubmit(ev) {
+    function onTimeSelectionModalSubmit(this: HTMLInputElement, ev: { keyCode: number }) {
         if (ev.keyCode === 13) { // return key
-            const time = $(this).val();
+            const time = $(this).val() as string;
             if (time.indexOf(':') > -1) {
                 player.setTime(convertTimestampToSeconds(time));
             } else {

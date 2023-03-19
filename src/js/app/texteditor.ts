@@ -1,25 +1,27 @@
 import { cleanHTML } from './clean-html';
 import { activateTimestamps } from './timestamps';
-const $ = require('jquery');
+import $ from 'jquery';
 
-function countWords(str){
-    var trimmedStr = $.trim(str);
+function countWords(str: string){
+    var trimmedStr = str.trim();
     if (trimmedStr){
-        return trimmedStr.match(/\S+/gi).length;
+        return trimmedStr.match(/\S+/gi)?.length ?? 0;
     }
     return 0;
 }
 
 function countTextbox(){
-    var textboxElement = document.getElementById('textbox');
+    var textboxElement = document.getElementById('textbox') as HTMLDivElement;
     var textboxText = textboxElement.innerText || textboxElement.textContent;
-    var count = countWords(textboxText);
+    var count = countWords(textboxText || '');
       
     var wordcountText = document.webL10n.get('wordcount', {n: count});
     wordcountText = wordcountText.replace(/(\d+)/, (n) => {
         return `<span class="word-count-number">${n}</span>`;
     });
-    document.querySelector('.wc-text').innerHTML = wordcountText;
+
+    const worldCount = document.querySelector('.wc-text') as HTMLSpanElement;
+    worldCount.innerHTML = wordcountText;
 }
 
 function initWordCount(){
@@ -33,9 +35,9 @@ function initWordCount(){
 
 function watchFormatting(){
     var b = document.queryCommandState("Bold");
-    var bi = document.getElementById("icon-b");
+    var bi = document.getElementById("icon-b") as HTMLElement;
     var i = document.queryCommandState("italic");
-    var ii = document.getElementById("icon-i");
+    var ii = document.getElementById("icon-i") as HTMLElement;
     
     if (b === true){
         bi.className = "fa fa-bold active"
@@ -55,7 +57,7 @@ function initWatchFormatting(){
     }, 100);
 }
 
-function setEditorContents( dirtyText, opts = {} ) {
+function setEditorContents( dirtyText: string, opts: {transition?: boolean} = {} ) {
     
     const newText = cleanHTML(dirtyText);
 
@@ -65,7 +67,7 @@ function setEditorContents( dirtyText, opts = {} ) {
         if (typeof newText === 'string') {
             $textbox[0].innerHTML = newText;
         } else {
-            textbox[0].innerHTML = '';
+            $textbox[0].innerHTML = '';
             $textbox[0].appendChild(newText);    
         }
         activateTimestamps();
@@ -86,8 +88,8 @@ function setEditorContents( dirtyText, opts = {} ) {
 function initAutoscroll() {
   var isScrolledToBottom = false;
 
-  var container = document.querySelector('.textbox-container');
-  var textbox = document.querySelector('#textbox');
+  var container = document.querySelector('.textbox-container') as HTMLDivElement;
+  var textbox = document.querySelector('#textbox') as HTMLDivElement;
 
   // update isScrolledToBottom on scroll event (true within 50px of the bottom of container)
   container.addEventListener('scroll', function() {

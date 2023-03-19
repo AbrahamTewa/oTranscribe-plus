@@ -1,7 +1,17 @@
-const $ = require('jquery');
+import $ from 'jquery';
 
-export default class YOUTUBE {
-    constructor (source, playPauseCallback){
+export default class YOUTUBE implements MediaDriver {
+    duration?: number;
+
+    element?: HTMLDivElement;
+
+    status: MediaStatus = MediaStatus.inactive;
+
+    _isReady = false;
+
+    _ytEl?: YouTubePlayer;
+
+    constructor (source: string, playPauseCallback: () => void){
         
         this.element = document.createElement('div');
         this.element.setAttribute('id','oTplayerEl');
@@ -10,8 +20,12 @@ export default class YOUTUBE {
         
         
         loadScriptTag(() => {
-        
             var videoId = parseYoutubeURL(source);
+
+            if (!videoId) {
+                throw new Error('Invalid video url');
+            }
+
             this._ytEl = new YT.Player('oTplayerEl', {
                 width: '100%',
                 videoId: videoId,
@@ -28,16 +42,20 @@ export default class YOUTUBE {
                 }
             });
         
-            function onStateChange (ev){
+            function onStateChange(this: YOUTUBE, ev: { data: number }){
                 var status = ev.data;
                 if (status === 1) {
-                    this.status = 'playing';
+                    this.status = MediaStatus.playing;
                 } else {
-                    this.status = 'paused';
+                    this.status = MediaStatus.paused;
                 }
                 playPauseCallback();
             }
-            function onYTPlayerReady() {
+            function onYTPlayerReady(this: YOUTUBE) {
+                if (!this._ytEl) {
+                    return;
+                }
+
                 // fix non-responsive keyboard shortcuts bug
                 $('input.speed-slider').val(0.5).change().val(1).change();
     
@@ -55,7 +73,7 @@ export default class YOUTUBE {
                         this.pause();
                         
                         this._isReady = true;
-                        window._ytEl = this._ytEl;
+                        window._ytEl = this._ytEl as YouTubePlayer;
 
                         
                         
@@ -67,14 +85,14 @@ export default class YOUTUBE {
             }
         });
         
-        function loadScriptTag(callback) {
+        function loadScriptTag(callback: () => void) {
             // import YouTube API
             if ( window.YT === undefined ) {
                 var tag = document.createElement('script');
                 tag.setAttribute('id','youtube-script');
                 tag.src = "https://www.youtube.com/iframe_api";
-                var firstScriptTag = document.getElementsByTagName('script')[0];
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                var firstScriptTag = document.getElementsByTagName('script')[0] as HTMLScriptElement;
+                firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
             } else {
                 callback();
             }
@@ -82,40 +100,69 @@ export default class YOUTUBE {
         }        
         
     }
-    play(){
+    play(): void {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         this._ytEl.playVideo();
     }
-    pause(){
+    pause(): void {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         this._ytEl.pauseVideo();
     }
-    getTime(){
+    getTime(): number {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         return this._ytEl.getCurrentTime();
     }
-    setTime(time){
+    setTime(time: number): void {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         this._ytEl.seekTo( time );
     }
-    getStatus(){
+    getStatus(): MediaStatus {
         return this.status;
     }
-    getLength(){
-        return this.duration;
+    getLength(): number {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
+        return this.duration as number;
     }
-    isReady(){
+    isReady(): boolean {
         return this._isReady;
     }
-    getSpeed(){
+    getSpeed(): number {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         if ('getPlaybackRate' in this._ytEl) {
             return this._ytEl.getPlaybackRate();
         } else {
             return 1;
         }
     }
-    setSpeed(speed){
+    setSpeed(speed: number): void {
+        if (!this._ytEl) {
+            throw new Error('Driver not initialized');
+        }
+
         if ('setPlaybackRate' in this._ytEl) {
             this._ytEl.setPlaybackRate(speed);
         }
     }
-    getName() {
+    getName(): string {
+        return '';
         
         // oTplayer.prototype._setYoutubeTitle = function(id){
         //     var url = 'http://gdata.youtube.com/feeds/api/videos/'+id+'?v=2&alt=json-in-script&callback=?';
@@ -138,13 +185,13 @@ export default class YOUTUBE {
         // };
         
     }
-    destroy(){
+    destroy(): void {
         $('#oTplayerEl').remove();
         delete this.element; 
     }
 }
 
-function parseYoutubeURL(url){
+function parseYoutubeURL(url: string){
     if (url.match) {
         var regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
         var match = url.match(regExp);

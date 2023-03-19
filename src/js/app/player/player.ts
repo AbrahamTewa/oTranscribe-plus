@@ -24,9 +24,35 @@ methods & properties:
 
 
 */
-class Player{
 
-	constructor(opts, callback){
+type PlayerOptions<T extends MediaDriver = MediaDriver> = {
+    driver: new (
+        source: string,
+        onPlayPause: () => void
+    ) => T;
+    name?: string;
+    onReady?: (player: Player<T>) => void,
+    source: string;
+}
+
+class Player<T extends MediaDriver = MediaDriver> {
+    onPlayPauseCallback?: OnPlayPauseCallback;
+
+    driver: T;
+
+    maxSpeed: number;
+
+    minSpeed: number;
+
+    name?: string;
+
+    onSpeedChangeCallback?: SpeedChangeCallback;
+
+    skipTime: number;
+
+    speedIncrement: number;
+
+	constructor(opts: PlayerOptions<T>, callback?: () => void){
 		if (!opts) {
 	        throw('Player needs options');
 	    }
@@ -42,7 +68,7 @@ class Player{
             if (this.onPlayPauseCallback) {
     	        this.onPlayPauseCallback(this.getStatus());
             }
-	    });
+	    }) as T;
 	    this.skipTime = 1.5;
 	    this.speedIncrement = 0.125;
 	    this.minSpeed = 0.5;
@@ -58,9 +84,9 @@ class Player{
 	    };
 
         let _player = this;
-	    function checkIfReady(callback){
+	    function checkIfReady(){
 	        if (driver.isReady()) {
-	            opts.onReady(_player);
+	            opts.onReady?.(_player);
 	        } else if (attempts < 20000) {
 	            setTimeout(checkIfReady,10);
 				attempts++;
@@ -70,7 +96,7 @@ class Player{
 	    }
         
         const setPlayerHeight = () => {
-            const videoEl = document.querySelector('.video-player');
+            const videoEl = document.querySelector('.video-player') as HTMLVideoElement;
             if (videoEl) {
                 videoEl.style.height = `${videoEl.offsetWidth * (3 / 4)}px`;
             }
@@ -83,7 +109,7 @@ class Player{
 	}
 
     play(){
-    	this.skip('backwards');
+    	this.skip(PlayerSkipDirection.backwards);
         this.driver.play();
     }
 
@@ -95,19 +121,19 @@ class Player{
     	return this.driver.isReady() ? this.driver.getTime() : 0;
     }
 
-    setTime(time){
+    setTime(time: number){
         this.driver.setTime(time);
     }
     
-    skipTo(time) {
+    skipTo(time: number) {
         this.setTime(time);
     }
 
-    skip(direction){
+    skip(direction: PlayerSkipDirection){
         let expectedTime = this.getTime();
-    	if (direction === 'forwards') {
+    	if (direction === PlayerSkipDirection.forward) {
             expectedTime += this.skipTime;
-        } else if ((direction === 'backwards') || direction === 'back') {
+        } else if (direction === PlayerSkipDirection.backwards || direction === PlayerSkipDirection.back) {
             expectedTime -= this.skipTime;
         } else {
             throw ('Skip requires a direction: forwards or backwards')
@@ -121,8 +147,8 @@ class Player{
         }
     }
 
-    getStatus(){
-    	return this.driver.isReady() ? this.driver.getStatus() : 'inactive';
+    getStatus(): MediaStatus {
+    	return this.driver.isReady() ? this.driver.getStatus() : MediaStatus.inactive;
     }
 
     getLength(){
@@ -133,47 +159,47 @@ class Player{
     	return this.driver.getSpeed();
     }
 
-    setSpeed(speed){
+    setSpeed(speed: number){
     	if ((speed >= this.minSpeed) && (speed <= this.maxSpeed)) {
             this.driver.setSpeed(speed);
         } else {
             throw ('Speed is outside the min/max speed bounds')
         }
-        this.onSpeedChangeCallback(speed);
+        this.onSpeedChangeCallback?.(speed);
     }
 
-    speed(direction){
+    speed(direction: PlayerSpeedDirection | number){
     	if (typeof direction === 'number') {
             this.driver.setSpeed( direction );
-        } else if (direction === 'up') {
+        } else if (direction === PlayerSpeedDirection.up) {
             this.setSpeed( this.getSpeed() + this.speedIncrement );
-        } else if (direction === 'down') {
+        } else if (direction === PlayerSpeedDirection.down) {
             this.setSpeed( this.getSpeed() - this.speedIncrement );
         } else {
             throw ('Speed requires a direction: up or down')
         }
     }
     
-    onSpeedChange(callback) {
+    onSpeedChange(callback: SpeedChangeCallback) {
         this.onSpeedChangeCallback = callback;
     }
     
-    onPlayPause(callback) {
+    onPlayPause(callback: OnPlayPauseCallback) {
         this.onPlayPauseCallback = callback;
     }
     
-    getName() {
+    getName(): string {
         if (this.driver.getName) {
             return this.driver.getName();;
         }
         return this.name || '';
     }
 
-    getTitle() {
+    getTitle(): string {
         return this.getName();
     }
 
-    destroy(){
+    destroy(): void {
         if (this.driver) {
             this.pause();
         	this.driver.destroy();
@@ -187,21 +213,25 @@ const playerDrivers = {
     YOUTUBE
 };
 
-let player = null;
+let player = null as Player | null;
 
-function getPlayer() {
+function getPlayer(): Player {
+    if (!player) {
+        throw new Error('Player not created');
+    }
+
     return player;
 };
 
-function createPlayer(opts) {
+function createPlayer<T extends MediaDriver = MediaDriver>(opts: PlayerOptions<T>): Promise<Player<T>> {
     return new Promise((res, rej) => {
         opts.onReady = res;
         player = new Player(opts);
     });
 }
 
-function isVideoFormat(file) {
-    if ('type' in file) {
+function isVideoFormat(file: File | string ) {
+    if (typeof file === 'object') {
         return file.type.indexOf('video') > -1;
     }
     var urlSplt = file.split('.');
@@ -209,17 +239,26 @@ function isVideoFormat(file) {
     return !!format.match(/mov|mp4|avi|webm/);    
 }
 
-// https://remysharp.com/2010/07/21/throttling-function-calls
-function debounce(fn, delay) {
-  var timer = null;
-  return function () {
-    var context = this, args = arguments;
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      fn.apply(context, args);
-    }, delay);
-  };
+type OnPlayPauseCallback = (status: MediaStatus) => void;
+type SpeedChangeCallback = (speed: number) => void;
+
+enum PlayerSpeedDirection {
+    up = 'up',
+    down = 'down',
 }
 
+enum PlayerSkipDirection {
+    forward = "forward",
+    backwards = "backwards",
+    back = "back",
+}
 
-export {createPlayer, getPlayer, playerDrivers, isVideoFormat};
+export {
+    PlayerSkipDirection,
+    PlayerSpeedDirection,
+
+    createPlayer,
+    getPlayer,
+    playerDrivers,
+    isVideoFormat,
+};

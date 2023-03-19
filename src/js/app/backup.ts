@@ -1,11 +1,12 @@
-const $ = require('jquery');
-const localStorageManager = require('local-storage-manager');
+import $ from 'jquery';
+import localStorageManager from 'local-storage-manager';
 import showMessage from './message-panel';
 import {setEditorContents} from './texteditor';
 import { addKeyboardShortcut } from './ui';
 
 function getTexteditorContents() {
-    return document.querySelector('#textbox').innerHTML;
+    const div = document.querySelector('#textbox') as HTMLDivElement;
+    return div.innerHTML;
 }
 
 function init(){
@@ -34,7 +35,7 @@ function init(){
 
 // original autosave function
 function autosaveInit(){
-    var field = document.querySelector("#textbox");
+    var field = document.querySelector("#textbox") as HTMLDivElement;
     
     // load existing autosave (if present)
     try {
@@ -68,7 +69,7 @@ function migrateToLocalStorageManager(){
     }
     var backupList = [];
     for (var i = 0; i < localStorage.length; i++) {
-        var key = localStorage.key(i);
+        var key = localStorage.key(i) as string;
         if (key.indexOf('oTranscribe-backup') === 0) {
             var item = {
                 value: localStorage.getItem( key ),
@@ -98,11 +99,12 @@ function closePanel(){
 
 function openPanel(){
     populatePanel();
-    $('.backup-window').height( $('.textbox-container').height() * (3/5) );
+    const textBoxHeight = $('.textbox-container').height() as number;
+    $('.backup-window').height( textBoxHeight * (3/5) );
     $('.backup-panel').fadeIn('fast');
 }
 
-function formatDate(timestamp){
+function formatDate(timestamp: string){
     var d = new Date( parseFloat(timestamp) );
     var day =  d.getDate() + '/' + (d.getMonth()+1);
     var now = new Date();
@@ -136,7 +138,7 @@ function trimBackupsToOneHundred(){
 }
 
 
-function generateBlock(ref){
+function generateBlock(ref: string): HTMLDivElement {
     // create icon and 'restore' button
     var obj = localStorageManager.getItemMetadata(ref);
     var text = obj.value;
@@ -155,7 +157,7 @@ function generateBlock(ref){
     var restoreText = document.webL10n.get('restore-button');
     restoreButton.innerHTML = `${date} - <span data-restore=${timestamp}>${restoreText}</span>`;
     $(restoreButton).find('span[data-restore]').click(function() {
-        restoreBackup( this.dataset.restore );
+        restoreBackup( this.dataset.restore as string );
     });
     
     block.appendChild(doc);
@@ -165,7 +167,7 @@ function generateBlock(ref){
 }
 
 
-function populatePanel(){
+function populatePanel(): void {
     addDocsToPanel(0,8);
     if (listFiles().length === 0) {
         var noBackupsText = document.webL10n.get('no-backups');
@@ -173,7 +175,7 @@ function populatePanel(){
     }
 }
 
-function addDocsToPanel(start,end){
+function addDocsToPanel(start: number, end: number) {
     $('.more-backups').remove();
     var allDocs = listFiles();
     const docs = allDocs.slice(start,end);
@@ -196,7 +198,7 @@ function addDocsToPanel(start,end){
         `);
         moreBackupsEl.click(function() {
             const {start, end} = this.dataset;
-            addDocsToPanel(start, end);
+            addDocsToPanel(Number(start), Number(end));
         });
         
         $('.backup-window').append( moreBackupsEl );
@@ -249,7 +251,7 @@ function saveBackup(){
 
 
 
-function restoreBackup(timestamp){
+function restoreBackup(timestamp: string): void {
     saveBackup();
     const restoreErrorMessage = document.webL10n.get('restore-error');
     try {

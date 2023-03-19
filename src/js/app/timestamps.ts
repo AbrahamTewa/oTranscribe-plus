@@ -1,6 +1,6 @@
 import {getPlayer} from './player/player';
 
-function getTime(){
+function getTime(): TimeRepresentation {
     // get timestamp
     const player = getPlayer();
     let time = 0;
@@ -14,7 +14,7 @@ function getTime(){
     };
 };
 
-function formatMilliseconds(time) {
+function formatMilliseconds(time: TimeInMilliseconds): string {
     const hours = Math.floor(time / 3600).toString();
     const minutes = ("0" + Math.floor(time / 60) % 60).slice(-2);
     const seconds = ("0" + Math.floor( time % 60 )).slice(-2);
@@ -27,23 +27,31 @@ function formatMilliseconds(time) {
 }
 
 // http://stackoverflow.com/a/25943182
-function insertHTML(newElement) {
+function insertHTML(newElement: Node): void {
     var sel, range;
-    if (window.getSelection && (sel = window.getSelection()).rangeCount) {
-        range = sel.getRangeAt(0);
-        range.collapse(true);
-        range.insertNode(newElement);
-
-        // Move the caret immediately after the inserted span
-        range.setStartAfter(newElement);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
+    if (!window.getSelection) {
+        return;
     }
+
+    sel = window.getSelection();
+
+    if (!sel?.rangeCount) {
+        return;
+    }
+
+    range = sel.getRangeAt(0);
+    range.collapse(true);
+    range.insertNode(newElement);
+
+    // Move the caret immediately after the inserted span
+    range.setStartAfter(newElement);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
 }
 
 
-function insertTimestamp(givenTime){
+function insertTimestamp(givenTime?: TimeRepresentation): void {
     var time = givenTime || getTime();
     if (time) {
         const space = document.createTextNode("\u00A0");
@@ -53,24 +61,25 @@ function insertTimestamp(givenTime){
     }
 }
 
-function createTimestampEl(time) {
+function createTimestampEl(time: TimeRepresentation): HTMLSpanElement {
     const timestamp = document.createElement('span');
     timestamp.innerText = time.formatted;
     timestamp.className = 'timestamp';
     timestamp.setAttribute('contenteditable', 'false');
-    timestamp.setAttribute('data-timestamp', time.raw);
+    timestamp.setAttribute('data-timestamp', String(time.raw));
     return timestamp;
 }
 
-function activateTimestamps(){
-    Array.from(document.querySelectorAll('.timestamp')).forEach(el => {
-        el.contentEditable = false;
+function activateTimestamps(): void {
+    const list : NodeListOf<HTMLSpanElement> = document.querySelectorAll('.timestamp');
+    Array.from(list).forEach(el => {
+        el.contentEditable = "false";
         el.removeEventListener('click', onClick);
         el.addEventListener('click', onClick);
     });
 }
 
-function onClick() {
+function onClick(this: HTMLSpanElement): void {
     const player = getPlayer();
     var time = this.dataset.timestamp;
     if (player) {
@@ -78,26 +87,12 @@ function onClick() {
             // backwards compatibility, as old timestamps have string rather than number
             player.setTime(convertTimestampToSeconds(time));
         } else {
-            player.setTime( time );
+            player.setTime(Number(time));
         }
     }    
 }
 
-// backwards compatibility, as old timestamps use setFromTimestamp() and ts.setFrom()
-window.setFromTimestamp = function(clickts, element){
-    window.ts.setFrom(clickts, element);
-}
-window.ts = {
-    setFrom: function(clickts, element){
-        const player = getPlayer();
-        var time = this.dataset.timestamp;
-        if (player && element.childNodes.length == 1) {
-            player.setTime( convertTimestampToSeconds(time) );
-        }
-    }
-}
-
-function convertTimestampToSeconds(hms) {
+function convertTimestampToSeconds(hms: string): number {
     var a = hms.split(':');
     if (a.length === 3) {
         return ((+a[0]) * 60 * 60) + (+a[1]) * 60 + (+a[2]);

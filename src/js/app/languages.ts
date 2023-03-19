@@ -1,6 +1,6 @@
-const $ = require('jquery');
+import $ from 'jquery';
 
-var languages = {
+var languages: Record<string, string> = {
     'en': 'English',
     'es': 'Español',
     'de': 'Deutsch',
@@ -27,13 +27,13 @@ var languages = {
     'el': 'Ελληνικά'       // Greek
 };
 
-function setLang(lang){
+function setLang(lang: string){
     if (lang){
         localStorageManager.setItem('oTranscribe-language',lang);
         window.location.reload();
     }
 };
-function applyLang(callback){
+function applyLang(){
     var lang = localStorageManager.getItem('oTranscribe-language');
     if(lang) {
         document.webL10n.setLanguage(lang);

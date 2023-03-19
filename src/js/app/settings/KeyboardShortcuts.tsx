@@ -2,28 +2,38 @@ import { h, render, Component } from 'preact';
 import keycode from 'keycode';
 import { correctModKey } from '../ui';
 
-class Shortcut extends Component {
+type ShortcutProps = {
+    keyFn: KeyFn,
+    keyCombos: KeyboardKey[],
+    onChange: (keyFn: KeyFn, keyCombos: KeyboardKey[]) => void,
+};
+
+type ShortcutState = {
+    listening: boolean,
+};
+
+class Shortcut extends Component<ShortcutProps, ShortcutState> {
     render() {
         const {keyFn, keyCombos, onChange} = this.props;
-        const listenForShortcut = function(keyFn) {
+        const listenForShortcut = (kFn: KeyFn) => {
             this.setState({
                 listening: true
             });
-            listen(newKeyCombo => {
+            listen((newKeyCombo: KeyboardKey) => {
                 if (this.state.listening === true) {
-                    onChange(keyFn, [].concat(keyCombos, newKeyCombo));
+                    onChange(kFn, [...keyCombos, newKeyCombo]);
                 }
                 this.setState({
                     listening: false
                 });
             });
         };
-        const cancelListen = function() {
+        const cancelListen = () => {
             this.setState({
                 listening: false
             });
         }
-        const removeCombo = function(keyFn, index) {
+        const removeCombo = function(keyFn: KeyFn, index: number) {
             keyCombos.splice(index, 1)
             onChange(keyFn, keyCombos);
         };
@@ -61,14 +71,24 @@ class Shortcut extends Component {
     }
 }
 
-export default function KeyboardShortcutPanel(props) {
-    const onChange = function(keyFn, keyCombos) {
+type KeyboardShortcutPanelProps = {
+    onChange: (settings: AppSettings['keyboardShortcuts']) => void,
+    reset: () => void,
+    settings: AppSettings['keyboardShortcuts']
+};
+
+export default function KeyboardShortcutPanel(props: KeyboardShortcutPanelProps) {
+    const onChange = function(keyFn: KeyFn, keyCombos: KeyboardKey[]) {
         props.settings.shortcuts[keyFn] = keyCombos;
         props.onChange(props.settings);
     }
-    const shortcutList = Object.keys(props.settings.shortcuts).map(k => (
-        <Shortcut keyFn={k} keyCombos={props.settings.shortcuts[k]} onChange={onChange} />
-    ));
+
+    const shortcuts = Object.keys(props.settings.shortcuts) as KeyFn[];
+
+    const shortcutList = shortcuts
+        .map((k) => (
+            <Shortcut keyFn={k as KeyFn} keyCombos={props.settings.shortcuts[k]} onChange={onChange} />
+        ));
     return (
         <div>
             <h3>{document.webL10n.get('keyboard-shortcuts')}</h3>
@@ -80,8 +100,8 @@ export default function KeyboardShortcutPanel(props) {
     );
 }
 
-const listen = (cb) => {
-    const eventHandler = event => {
+const listen = (cb: (key: string) => void) => {
+    const eventHandler = (event: KeyboardEvent) => {
         let key = keycode(event);
         if (key.match(/shift|cmd|command|ctrl|meta|mod|alt/g)) {
             return;

@@ -3,11 +3,14 @@ import 'otinput';
 
 const $ = require('jquery');
 
-export function inputSetup(opts) {
+export function inputSetup(opts: {
+    create(file: File): void,
+    createFromURL(url: string): void,
+}) {
     
     var input = new oTinput({
         element: '.file-input-outer',
-        onFileChange: function(file){
+        onFileChange: function(file: File){
             currentFile = new File([file], "voskaudio", { type: file.type });
             opts.create(file);
             saveFileDetails(file.name);
@@ -43,9 +46,8 @@ export function inputSetup(opts) {
 
     // this is a workaround for an iOS bug 
     if (is_iOS()) {
-        document
-            .querySelector('.file-input-outer input[type="file"]')
-            .removeAttribute('accept');
+        const fileInput = document.querySelector('.file-input-outer input[type="file"]') as HTMLInputElement;
+        fileInput.removeAttribute('accept');
     }
     setFormatsMessage( oTinput.getSupportedFormats() );
     loadPreviousFileDetails();
@@ -65,39 +67,38 @@ function is_iOS() {
     );
 }
 
-function setFormatsMessage(formats){
+function setFormatsMessage(formats: { audio: string[], video: string[] }){
     var text = document.webL10n.get('formats');
     text = text.replace("[xxx]", formats.audio.join('/') );
     text = text.replace("[yyy]", formats.video.join('/') );
-    document.getElementById("formats").innerHTML = text;
+    const divFormats = document.getElementById("formats") as HTMLDivElement;
+    divFormats.innerHTML = text;
 }
 
 function loadPreviousFileDetails(){
     if ( localStorageManager.getItem("oT-lastfile") ) {
         var lastFile = JSON.parse( localStorageManager.getItem("oT-lastfile") );
         var lastfileText = document.webL10n.get('last-file');
+        const lastFileDiv = document.getElementById("lastfile") as HTMLDivElement;
+
         if (lastFile.name === undefined) {
-            document.getElementById("lastfile").innerHTML = lastfileText+' '+lastFile;
+            lastFileDiv.innerHTML = lastfileText+' '+lastFile;
         } else if (lastFile.source === '') {
-            document.getElementById("lastfile").innerHTML = lastfileText+' '+lastFile.name;
+            lastFileDiv.innerHTML = lastfileText+' '+lastFile.name;
         } else {
-            var el = document.getElementById("lastfile");
-            el.innerHTML = lastfileText+' <span class="media-reload">'+lastFile.name+'</span>';
-            el.addEventListener('click',function(){ 
+            lastFileDiv.innerHTML = lastfileText+' <span class="media-reload">'+lastFile.name+'</span>';
+            lastFileDiv.addEventListener('click',function(){ 
                 processYoutube( lastFile.source );
             });
         }
     }    
 }
 
-function saveFileDetails(fileDetails){
-    var obj = fileDetails;
-    if (typeof file === 'string') {
-        obj = {
-            name: fileDetails,
-            source: ''
-        }
-    }
+function saveFileDetails(fileDetails: string){
+    const obj = {
+        name: fileDetails,
+        source: ''
+    };
     localStorageManager.setItem("oT-lastfile", JSON.stringify( obj ));
 }
 
@@ -109,17 +110,14 @@ function show(){
     
 }
 
-export function getQueryParams(){
-
+export function getQueryParams(): Record<string, string> {
     return location.search
         .slice(1)
         .split('&')
-        .reduce((acc,curr)=>{ 
-
+        .reduce((acc: Record<string, string>,curr)=>{ 
             let [ key, value ] = curr.split("=");
             acc[key] = encodeURIComponent(value);
             return acc; 
-
         }, {});    
 
 }

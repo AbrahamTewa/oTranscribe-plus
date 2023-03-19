@@ -5,7 +5,8 @@
 
 function html5Support(){
     var audioTagSupport = !!(document.createElement('audio').canPlayType);
-    var contentEditableSupport = document.getElementById('textbox').contentEditable;
+    const textBox = document.getElementById('textbox') as HTMLDivElement;
+    var contentEditableSupport = textBox.contentEditable;
     var fileApiSupport = !!(window.FileReader);
 
     if (audioTagSupport && contentEditableSupport && fileApiSupport){
@@ -18,6 +19,7 @@ function html5Support(){
 export default function oldBrowserCheck(){
     if ( html5Support() === false ){
         var oldBrowserWarning = document.webL10n.get('old-browser-warning');
-        document.getElementById('old-browser').innerHTML = oldBrowserWarning;
+        const oldBrowser = document.getElementById('old-browser') as HTMLDivElement;
+        oldBrowser.innerHTML = oldBrowserWarning;
     }
 }

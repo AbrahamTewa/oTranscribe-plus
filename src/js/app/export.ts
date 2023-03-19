@@ -8,14 +8,32 @@ const sanitizeHtml = require('sanitize-html');
 import { cleanHTML } from './clean-html';
 
 function getTexteditorContents() {
-    return document.querySelector('#textbox').innerHTML;
+    const textBox = document.querySelector('#textbox') as HTMLDivElement;
+    return textBox.innerHTML;
 }
 
 function getFilename() {
     return document.webL10n.get('file-name') + " " + (new Date()).toUTCString();
 }
 
-let exportFormats = {
+type FormatSend = {
+    name: string,
+    setup: (cb: () => void) => void;
+    checkGoogleAuth?: (opts: { text: string, filename: string }) => void,
+    fn: (opts: { text: string, filename: string }) => void;
+    ready?: boolean,
+};
+
+type FormatDownload = {
+    extension: string,
+    ready?: boolean,
+    fn: (txt: string) => string;
+};
+
+let exportFormats: { 
+    download: FormatDownload[],
+    send: FormatSend[],
+} = {
     download: [],
     send: []
 };
@@ -48,37 +66,30 @@ exportFormats.download.push({
     name: 'oTranscribe format',
     extension: 'otr',
     fn: (txt) => {
-        let result = {};
-        result.text = txt.replace('\n','');
         const player = getPlayer();
-        if (player){
-            result.media = player.getName();
-            result['media-time'] = player.getTime();
-            // if (oT.media.ytEl) {
-            //     result['media-source'] = oT.media._ytEl.getVideoUrl();
-            // } else {
-            //     result['media-source'] = '';
-            // }
-        } else {
-            result.media = '';
-            result['media-source'] = '';
-            result['media-time'] = '';
-        }
+
+        let result = {
+            media: player?.getName() ?? '',
+            'media-source': '',
+            'media-time': player?.getTime() ?? '',
+            text: txt.replace('\n',''),
+        };
+
         return JSON.stringify(result);
     }
 });
 
 exportFormats.send.push({
     name: 'Google Drive',
-    setup: function(cb) {
+    setup: function(cb: () => void) {
         this.checkGoogleAuth = googleDriveSetup(cb);
     },
-    fn: function(opts) {
-        this.checkGoogleAuth(opts);
+    fn: function(opts: { text: string, filename: string }) {
+        this.checkGoogleAuth?.(opts);
     }
 })
 
-function generateButtons(filename) {
+function generateButtons() {
     
     const downloadData = exportFormats.download.map(format => {
         const clean = cleanHTML( getTexteditorContents() );
@@ -107,7 +118,7 @@ function generateButtons(filename) {
 
 export function exportSetup(){
     
-    $('.textbox-container').click(function(e) {
+    $('.textbox-container').click(function(e: Event) {
         if(
             $(e.target).is('#icon-exp') ||
             $(e.target).is('.export-panel') ||
@@ -119,27 +130,29 @@ export function exportSetup(){
         hideExportPanel();
     });    
     
-    $(".export-panel").click(function(e) {
+    $(".export-panel").click(function(e: Event) {
          e.stopPropagation();
     });
     
     $('.sbutton.export').click(function() {
         // document.querySelector('.container').innerHTML = downloadButtons;
-        var origin = $('#icon-exp').offset();
-        var right = parseInt( $('body').width() - origin.left + 25 );
-        var top = parseInt( origin.top ) - 50;
+        const iDiv = $('#icon-exp') as JQuery<HTMLDivElement>
+        var origin = iDiv.offset() as JQuery.Coordinates;
+        const bodyWidth = ($('body') as JQuery<HTMLBodyElement>).width() as number;
+        var right = bodyWidth - origin.left + 25;
+        var top = origin.top - 50;
         
+        const textBox = document.querySelector('#textbox') as HTMLDivElement;
         const filename = getFilename();
         const data = {
-            text: document.querySelector('#textbox').innerHTML,
+            text: textBox.innerHTML,
             filename: filename
         };
         
         $('.export-panel')
-            .html(generateButtons(filename));
+            .html(generateButtons());
 
         exportFormats.send.forEach(format => {
-
             if (format.ready) {
                 format.fn(data);
             } else {
@@ -168,6 +181,6 @@ function checkDownloadAttrSupport() {
     return (typeof a.download != "undefined");
 }
 
-function convertToBase64(str) {
+function convertToBase64(str: string) {
     return "data:application/octet-stream;base64," + btoa(str);
 }
