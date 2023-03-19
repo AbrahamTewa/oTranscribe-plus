@@ -1,5 +1,5 @@
 import { h, render, Component } from 'preact';
-import KeyboardShortcuts from './KeyboardShortcuts.jsx';
+import KeyboardShortcuts from './KeyboardShortcuts.js';
 import { bindPlayerToUI, keyboardShortcutSetup } from '../ui';
 const localStorageManager = require('local-storage-manager');
 import defaultSettings from './defaults.json';
